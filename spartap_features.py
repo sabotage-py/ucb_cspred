@@ -24,7 +24,7 @@ warnings.simplefilter('ignore', BiopythonWarning)
 import numpy as np
 
 
-
+DSSP_PATH = "/nfs/scistore20/bronsgrp/nsahoo/.conda/envs/forcefields/bin/mkdssp"
 atom_names = ['C', 'CA', 'CB', 'CD', 'CD1', 'CD2', 'CE', 'CE1', 'CE3', 'CE2', 'CG', 'CG1', 'CG2', 'CH2', 'CZ', 'CZ2', 'CZ3', 
 'H', 'HA', 'HB', 'HB2', 'HB3', 'HD1', 'HD2', 'HD21', 'HD22', 'HD3', 'HE', 'HE1', 'HE2', 'HE3', 'HE21', 'HE22', 'HG', 'HG1', 'HG12', 'HG13', 'HG2', 'HG3', 'HH2', 'HZ', 'HZ2', 'HZ3', 
 'N', 'ND2', 'NE1', 'NE2']
@@ -44,7 +44,7 @@ rc_ala['N'] = [123.8, 118.8, 120.4, 120.2, 120.3, 108.8, 118.2, 119.9,
 rc_ala['H'] = [8.24, 8.32, 8.34, 8.42, 8.30, 8.33, 8.42, 8.00,
                8.29, 8.16, 8.28, 8.40, np.nan, 8.32, 8.23, 8.31, 8.15, 8.03,
                8.25, 8.12]
-rc_ala['HA'] = [4.32, 4.55, 4.71, 4.64, 4.35, 4.62, 3.96, 4.73, 4.17, 4.32,
+rc_ala['HA'] = [4.32, 4.55, 4.64, 4.35, 4.62, 3.96, 4.73, 4.17, 4.32,
                 4.34, 4.48, 4.74, 4.42, 4.34, 4.3, 4.47, 4.35, 4.12, 4.66,
                 4.55]
 rc_ala['C'] = [177.8, 174.6, 176.3, 176.6, 175.8, 174.9, 174.1, 176.4, 176.6,
@@ -1493,7 +1493,7 @@ class PDB_SPARTAp_DataReader(BaseDataReader):
         for model in structure:
             nn_tree = PDB.NeighborSearch(list(model.get_atoms()))
             try:
-                dssp = PDB.DSSP(model, fpath)
+                dssp = PDB.DSSP(model, fpath, dssp=DSSP_PATH)
             except:
                 dssp = []
             if hse:
