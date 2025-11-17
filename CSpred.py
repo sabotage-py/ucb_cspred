@@ -13,6 +13,8 @@ import os
 import pandas as pd
 import argparse
 import multiprocessing
+import concurrent.futures
+from tqdm import tqdm
 # import warnings
 import sys
 if sys.version_info.major < 3 or sys.version_info.major == 3 and sys.version_info.minor < 5:
@@ -124,7 +126,7 @@ def calc_sing_pdb(pdb_file_name,pH=5,TP=True,TP_pred=None,ML=True,test=False):
     preds = pd.DataFrame()
     if TP:
         if TP_pred is None:
-            print("Calculating UCBShift-Y predictions ...")
+            # print("Calculating UCBShift-Y predictions ...")
             # generate hash string from pdb file name
             hashed_file_name = str(hash(pdb_file_name) % ((sys.maxsize + 1) * 2)) + '/'
             TP_pred = ucbshifty.main(pdb_file_name, 1, exclude=test, custom_working_dir=hashed_file_name)
@@ -138,7 +140,7 @@ def calc_sing_pdb(pdb_file_name,pH=5,TP=True,TP_pred=None,ML=True,test=False):
                     rc = 0
                 preds[atom+"_Y"] = TP_pred[atom] + rc
     if ML:
-        print("Generating features ...")
+        # print("Generating features ...")
         feats = build_input(pdb_file_name, pH)
         
         feats.rename(index=str, columns=sparta_rename_map, inplace=True) # Rename columns so that random coil columns can be correctly recognized
@@ -151,7 +153,7 @@ def calc_sing_pdb(pdb_file_name,pH=5,TP=True,TP_pred=None,ML=True,test=False):
         result = {"RESNUM":resnums, "RESNAME":resnames}
         for atom in toolbox.ATOMS:
             
-            print("Calculating UCBShift-X predictions for %s ..." % atom)
+            # print("Calculating UCBShift-X predictions for %s ..." % atom)
            
            # Predictions for each atom
             atom_feats = prepare_data_for_atom(feats, atom)
@@ -171,7 +173,7 @@ def calc_sing_pdb(pdb_file_name,pH=5,TP=True,TP_pred=None,ML=True,test=False):
             result[atom+"_X"] = r1_pred + rcoils["RCOIL_"+atom]
 
             if TP:
-                print("Calculating UCBShift predictions for %s ..." % atom)
+                # print("Calculating UCBShift predictions for %s ..." % atom)
                 feats_r2 = atom_feats.copy()
                 feats_r2["RESNAME"] = resnames
                 feats_r2["RESNUM"] = resnums
@@ -199,6 +201,16 @@ def calc_sing_pdb(pdb_file_name,pH=5,TP=True,TP_pred=None,ML=True,test=False):
         preds = pd.DataFrame(result)
     return preds
 
+
+def _process_one(item):
+    save_prefix = "shifts/"
+    preds = calc_sing_pdb(item[0], item[1], TP=True, ML=True, test=False)
+    bmrb_id = item[0].split("/")[7].split("_")[2]
+    str_id = item[0].split("/")[-1].split(".")[1]
+    save_name = f"{bmrb_id}_{str_id}.csv"
+    preds.to_csv(save_prefix + save_name, index=None)
+    # print("Finished prediction for %s (%d/%d)" % (save_name, idx + 1, len(inputs)))
+    return save_name
         
 
 if __name__ == "__main__":
@@ -232,20 +244,16 @@ if __name__ == "__main__":
                 else:
                     line_content[-1] = float(line_content[-1])
                 inputs.append(line_content)
-        # Decide saving folder
-        if args.output == "shifts.csv":
-            # No specific output path specified. Store all files in the current folder
-            SAVE_PREFIX = ""
-        else:
-            SAVE_PREFIX = args.output
-            if SAVE_PREFIX[-1] != "/":
-                SAVE_PREFIX = SAVE_PREFIX + "/"
 
-        for idx, item in enumerate(inputs):
-            preds = calc_sing_pdb(item[0], item[1], TP=not args.shiftx_only, ML=not args.shifty_only, test=args.test)
-            preds.to_csv(SAVE_PREFIX + os.path.basename(item[0]).replace(".pdb", ".csv"), index=None)
-            print("Finished prediction for %s (%d/%d)" % (item[0], idx + 1, len(inputs)))    
+        done_ones = []
+        with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(_process_one, item) for item in inputs]
+            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Processing"):
+                done_ones.append(future.result())
+        # for item in inputs:
+        #     _process_one(item)
     
     print("Complete!")
-   
+    # python CSpred.py pdb_ph.txt -b --output shifts
+
 
