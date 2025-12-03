@@ -1,5 +1,6 @@
 models/*
 shifts/*
+shifts_bioemu/*
 __pycache__/*
 
 refDB/pdbs/*
