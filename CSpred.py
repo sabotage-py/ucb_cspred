@@ -203,10 +203,10 @@ def calc_sing_pdb(pdb_file_name,pH=5,TP=True,TP_pred=None,ML=True,test=False):
 
 
 def _process_one(item):
-    save_prefix = "shifts/"
+    save_prefix = "shifts_bioemu/"
     preds = calc_sing_pdb(item[0], item[1], TP=True, ML=True, test=False)
-    bmrb_id = item[0].split("/")[7].split("_")[2]
-    str_id = item[0].split("/")[-1].split(".")[1]
+    bmrb_id = item[0].split("/")[8].split("_")[0]
+    str_id = int(item[0].split("/")[10].split("_")[1])
     save_name = f"{bmrb_id}_{str_id}.csv"
     preds.to_csv(save_prefix + save_name, index=None)
     # print("Finished prediction for %s (%d/%d)" % (save_name, idx + 1, len(inputs)))
@@ -246,7 +246,7 @@ if __name__ == "__main__":
                 inputs.append(line_content)
 
         done_ones = []
-        with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
             futures = [executor.submit(_process_one, item) for item in inputs]
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Processing"):
                 done_ones.append(future.result())

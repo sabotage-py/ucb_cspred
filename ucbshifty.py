@@ -231,8 +231,8 @@ def read_sing_chain_PDB(path,fix_unknown_res=True,remove_alternate_res=True):
         saver=PDBSaver()
         saver.set_structure(chain)
         # basename=os.path.basename(path)
-        temp_bmrb_id = path.split("/")[7].split("_")[2]
-        temp_str_id = path.split("/")[-1].split(".")[1]
+        temp_bmrb_id = path.split("/")[8].split("_")[0]
+        temp_str_id = int(path.split("/")[10].split("_")[1])
         basename = f"{temp_bmrb_id}_{temp_str_id}_fix.pdb"
         saver.save(basename)
     return chain
@@ -612,8 +612,8 @@ def main(path,strict,secondary=False,test=False,exclude=False,shifty=False,blast
     returns a pandas.DataFrame containing all the calculated shifts
     '''
     # fixname=os.path.basename(path).replace(".pdb","_fix.pdb")
-    temp_bmrb_id = path.split("/")[7].split("_")[2]
-    temp_str_id = path.split("/")[-1].split(".")[1]
+    temp_bmrb_id = path.split("/")[8].split("_")[0]
+    temp_str_id = int(path.split("/")[10].split("_")[1])
     fixname = f"{temp_bmrb_id}_{temp_str_id}_fix.pdb"
     seq,resnum=chain_to_seq(read_sing_chain_PDB(path))
     blast_result=blast(seq,db_name="train.blastdb" if test else "refDB.blastdb",return_aligned_seq=True,cleaning=not DEBUG,working_dir=custom_working_dir) # Only the SHIFTY mode needs the aligned sequence
